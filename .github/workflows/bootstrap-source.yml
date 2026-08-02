@@ -1,12 +1,6 @@
 name: Bootstrap source import
 
 on:
-  push:
-    branches:
-      - agent/initial-evidence-driven-import
-    paths:
-      - .bootstrap/archive.b64
-      - .github/workflows/bootstrap-source.yml
   pull_request:
     branches:
       - main
@@ -23,12 +17,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Inspect staged transfer
+        shell: bash
+        run: |
+          set -euo pipefail
+          wc -c .bootstrap/archive.b64
+          base64 --decode .bootstrap/archive.b64 > /tmp/workflow-debug-local.tar.xz
+          wc -c /tmp/workflow-debug-local.tar.xz
+          xz --test /tmp/workflow-debug-local.tar.xz
+
       - name: Reconstruct and verify source tree
         shell: bash
         run: |
           set -euo pipefail
-          base64 --decode .bootstrap/archive.b64 > /tmp/workflow-debug-local.tar.xz
-          xz --test /tmp/workflow-debug-local.tar.xz
           mkdir -p /tmp/workflow-debug-local-import
           tar -xJf /tmp/workflow-debug-local.tar.xz -C /tmp/workflow-debug-local-import
           test -f /tmp/workflow-debug-local-import/workflow-debug-local/pom.xml
