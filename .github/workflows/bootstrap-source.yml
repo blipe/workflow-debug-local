@@ -1,0 +1,43 @@
+name: Bootstrap source import
+
+on:
+  push:
+    branches:
+      - agent/initial-evidence-driven-import
+    paths:
+      - .bootstrap/archive.b64
+      - .github/workflows/bootstrap-source.yml
+
+permissions:
+  contents: write
+
+jobs:
+  import-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct validated source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 --decode .bootstrap/archive.b64 > /tmp/workflow-debug-local.tar.xz
+          echo 'fde86c28a4a036350d425f7b717e4936a29fb6b27b6bad004b13e27ebd3e3a5e  /tmp/workflow-debug-local.tar.xz' | sha256sum --check --strict
+          mkdir -p /tmp/workflow-debug-local-import
+          tar -xJf /tmp/workflow-debug-local.tar.xz -C /tmp/workflow-debug-local-import
+
+      - name: Replace branch with source-only commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout --detach origin/main
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a /tmp/workflow-debug-local-import/workflow-debug-local/. .
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Import evidence-driven workflow debug workbench'
+          git push --force origin HEAD:agent/initial-evidence-driven-import
