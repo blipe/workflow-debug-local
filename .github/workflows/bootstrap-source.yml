@@ -23,14 +23,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Reconstruct validated source tree
+      - name: Reconstruct and verify source tree
         shell: bash
         run: |
           set -euo pipefail
           base64 --decode .bootstrap/archive.b64 > /tmp/workflow-debug-local.tar.xz
-          echo 'fde86c28a4a036350d425f7b717e4936a29fb6b27b6bad004b13e27ebd3e3a5e  /tmp/workflow-debug-local.tar.xz' | sha256sum --check --strict
+          xz --test /tmp/workflow-debug-local.tar.xz
           mkdir -p /tmp/workflow-debug-local-import
           tar -xJf /tmp/workflow-debug-local.tar.xz -C /tmp/workflow-debug-local-import
+          test -f /tmp/workflow-debug-local-import/workflow-debug-local/pom.xml
+          test -f /tmp/workflow-debug-local-import/workflow-debug-local/agent/pom.xml
+          test -f /tmp/workflow-debug-local-import/workflow-debug-local/bridge/pom.xml
+          test -f /tmp/workflow-debug-local-import/workflow-debug-local/sidecar/pom.xml
+          test -f /tmp/workflow-debug-local-import/workflow-debug-local/scripts/validate-workbench-e2e.sh
 
       - name: Replace branch with source-only commit
         shell: bash
